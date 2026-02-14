@@ -1,5 +1,21 @@
 import React, { useState } from 'react';
-import { Settings, X, RefreshCw, Layers, Sliders, Palette, Zap, Code, Check, Copy, FileCode, FileJson, Terminal } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import {
+  Settings01Icon,
+  Cancel01Icon,
+  RefreshIcon,
+  Layers01Icon,
+  SlidersHorizontalIcon,
+  ColorPickerIcon,
+  ZapIcon,
+  CodeIcon,
+  CodeSquareIcon,
+  CheckmarkCircle02Icon,
+  Copy01Icon,
+  DocumentCodeIcon,
+  SourceCodeIcon,
+  ComputerTerminal01Icon
+} from '@hugeicons/core-free-icons';
 import Grainient, { GrainientProps } from './components/Grainient';
 
 // Default configuration matches the component's defaults
@@ -327,7 +343,7 @@ const App: React.FC = () => {
   const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<'colors' | 'motion' | 'effects' | 'view'>('colors');
   const [showCodeModal, setShowCodeModal] = useState(false);
-  const [codeTab, setCodeTab] = useState<'usage' | 'component'>('usage');
+  const [codeTab, setCodeTab] = useState<'usage' | 'component' | 'vanilla'>('usage');
   const [copied, setCopied] = useState(false);
   const [dependencyCopied, setDependencyCopied] = useState(false);
 
@@ -366,8 +382,202 @@ export default function MyComponent() {
 }`;
   };
 
+  const getVanillaCode = () => {
+    const num = (n: number, d = 3) => Number(n.toFixed(d));
+    const cfg = {
+      timeSpeed: num(config.timeSpeed!),
+      colorBalance: num(config.colorBalance!, 3),
+      warpStrength: num(config.warpStrength!, 3),
+      warpFrequency: num(config.warpFrequency!, 3),
+      warpSpeed: num(config.warpSpeed!, 3),
+      warpAmplitude: num(config.warpAmplitude!, 3),
+      blendAngle: num(config.blendAngle!, 3),
+      blendSoftness: num(config.blendSoftness!, 3),
+      rotationAmount: num(config.rotationAmount!, 3),
+      noiseScale: num(config.noiseScale!, 3),
+      grainAmount: num(config.grainAmount!, 3),
+      grainScale: num(config.grainScale!, 3),
+      grainAnimated: !!config.grainAnimated,
+      contrast: num(config.contrast!, 3),
+      gamma: num(config.gamma!, 3),
+      saturation: num(config.saturation!, 3),
+      centerX: num(config.centerX!, 3),
+      centerY: num(config.centerY!, 3),
+      zoom: num(config.zoom!, 3),
+      color1: config.color1!,
+      color2: config.color2!,
+      color3: config.color3!,
+    };
+    return `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Grainient Vanilla (OGL)</title>
+    <style>
+      html, body { height: 100%; margin: 0; }
+      body { background: #000; color: #fff; }
+      #app { position: relative; width: 100%; height: 100vh; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module">
+      import { Renderer, Program, Mesh, Triangle } from 'https://esm.sh/ogl@1.0.11';
+
+      const hexToRgb = (hex) => {
+        const res = /^#?([a-f\\d]{2})([a-f\\d]{2})([a-f\\d]{2})$/i.exec(hex);
+        if (!res) return [1,1,1];
+        return [parseInt(res[1],16)/255, parseInt(res[2],16)/255, parseInt(res[3],16)/255];
+      };
+
+      const opts = ${JSON.stringify(cfg, null, 2)};
+
+      const vertex = \`#version 300 es
+      in vec2 position;
+      void main() { gl_Position = vec4(position, 0.0, 1.0); }
+      \`;
+
+      const fragment = \`#version 300 es
+      precision highp float;
+      uniform vec2 iResolution;
+      uniform float iTime;
+      uniform float uTimeSpeed;
+      uniform float uColorBalance;
+      uniform float uWarpStrength;
+      uniform float uWarpFrequency;
+      uniform float uWarpSpeed;
+      uniform float uWarpAmplitude;
+      uniform float uBlendAngle;
+      uniform float uBlendSoftness;
+      uniform float uRotationAmount;
+      uniform float uNoiseScale;
+      uniform float uGrainAmount;
+      uniform float uGrainScale;
+      uniform float uGrainAnimated;
+      uniform float uContrast;
+      uniform float uGamma;
+      uniform float uSaturation;
+      uniform vec2 uCenterOffset;
+      uniform float uZoom;
+      uniform vec3 uColor1;
+      uniform vec3 uColor2;
+      uniform vec3 uColor3;
+      out vec4 fragColor;
+      #define S(a,b,t) smoothstep(a,b,t)
+      mat2 Rot(float a){float s=sin(a),c=cos(a);return mat2(c,-s,s,c);} 
+      vec2 hash(vec2 p){p=vec2(dot(p,vec2(2127.1,81.17)),dot(p,vec2(1269.5,283.37)));return fract(sin(p)*43758.5453);} 
+      float noise(vec2 p){vec2 i=floor(p),f=fract(p),u=f*f*(3.0-2.0*f);float n=mix(mix(dot(-1.0+2.0*hash(i+vec2(0.0,0.0)),f-vec2(0.0,0.0)),dot(-1.0+2.0*hash(i+vec2(1.0,0.0)),f-vec2(1.0,0.0)),u.x),mix(dot(-1.0+2.0*hash(i+vec2(0.0,1.0)),f-vec2(0.0,1.0)),dot(-1.0+2.0*hash(i+vec2(1.0,1.0)),f-vec2(1.0,1.0)),u.x),u.y);return 0.5+0.5*n;}
+      void mainImage(out vec4 o, vec2 C){
+        float t=iTime*uTimeSpeed;
+        vec2 uv=C/iResolution.xy;
+        float ratio=iResolution.x/iResolution.y;
+        vec2 tuv=uv-0.5+uCenterOffset;
+        tuv/=max(uZoom,0.001);
+        float degree=noise(vec2(t*0.1,tuv.x*tuv.y)*uNoiseScale);
+        tuv.y*=1.0/ratio;
+        tuv*=Rot(radians((degree-0.5)*uRotationAmount+180.0));
+        tuv.y*=ratio;
+        float frequency=uWarpFrequency;
+        float ws=max(uWarpStrength,0.001);
+        float amplitude=uWarpAmplitude/ws;
+        float warpTime=t*uWarpSpeed;
+        tuv.x+=sin(tuv.y*frequency+warpTime)/amplitude;
+        tuv.y+=sin(tuv.x*(frequency*1.5)+warpTime)/(amplitude*0.5);
+        vec3 colLav=uColor1;
+        vec3 colOrg=uColor2;
+        vec3 colDark=uColor3;
+        float b=uColorBalance;
+        float s=max(uBlendSoftness,0.0);
+        mat2 blendRot=Rot(radians(uBlendAngle));
+        float blendX=(tuv*blendRot).x;
+        float edge0=-0.3-b-s;
+        float edge1=0.2-b+s;
+        float v0=0.5-b+s;
+        float v1=-0.3-b-s;
+        vec3 layer1=mix(colDark,colOrg,S(edge0,edge1,blendX));
+        vec3 layer2=mix(colOrg,colLav,S(edge0,edge1,blendX));
+        vec3 col=mix(layer1,layer2,S(v0,v1,tuv.y));
+        vec2 grainUv=uv*max(uGrainScale,0.001);
+        if(uGrainAnimated>0.5){grainUv+=vec2(iTime*0.05);} 
+        float grain=fract(sin(dot(grainUv,vec2(12.9898,78.233)))*43758.5453);
+        col+=(grain-0.5)*uGrainAmount;
+        col=(col-0.5)*uContrast+0.5;
+        float luma=dot(col,vec3(0.2126,0.7152,0.0722));
+        col=mix(vec3(luma),col,uSaturation);
+        col=pow(max(col,0.0),vec3(1.0/max(uGamma,0.001)));
+        col=clamp(col,0.0,1.0);
+        o=vec4(col,1.0);
+      }
+      void main(){ vec4 o=vec4(0.0); mainImage(o,gl_FragCoord.xy); fragColor=o; }
+      \`;
+
+      const container = document.getElementById('app');
+      const renderer = new Renderer({ webgl: 2, alpha: true, antialias: false, dpr: Math.min(window.devicePixelRatio||1, 2) });
+      const gl = renderer.gl;
+      const canvas = gl.canvas;
+      canvas.style.width='100%'; canvas.style.height='100%'; canvas.style.display='block';
+      container.appendChild(canvas);
+
+      const geometry = new Triangle(gl);
+      const program = new Program(gl, {
+        vertex, fragment,
+        uniforms: {
+          iTime: { value: 0 },
+          iResolution: { value: new Float32Array([1, 1]) },
+          uTimeSpeed: { value: opts.timeSpeed },
+          uColorBalance: { value: opts.colorBalance },
+          uWarpStrength: { value: opts.warpStrength },
+          uWarpFrequency: { value: opts.warpFrequency },
+          uWarpSpeed: { value: opts.warpSpeed },
+          uWarpAmplitude: { value: opts.warpAmplitude },
+          uBlendAngle: { value: opts.blendAngle },
+          uBlendSoftness: { value: opts.blendSoftness },
+          uRotationAmount: { value: opts.rotationAmount },
+          uNoiseScale: { value: opts.noiseScale },
+          uGrainAmount: { value: opts.grainAmount },
+          uGrainScale: { value: opts.grainScale },
+          uGrainAnimated: { value: opts.grainAnimated ? 1.0 : 0.0 },
+          uContrast: { value: opts.contrast },
+          uGamma: { value: opts.gamma },
+          uSaturation: { value: opts.saturation },
+          uCenterOffset: { value: new Float32Array([opts.centerX, opts.centerY]) },
+          uZoom: { value: opts.zoom },
+          uColor1: { value: new Float32Array(hexToRgb(opts.color1)) },
+          uColor2: { value: new Float32Array(hexToRgb(opts.color2)) },
+          uColor3: { value: new Float32Array(hexToRgb(opts.color3)) },
+        }
+      });
+      const mesh = new Mesh(gl, { geometry, program });
+
+      const setSize = () => {
+        const rect = container.getBoundingClientRect();
+        const width = Math.max(1, Math.floor(rect.width));
+        const height = Math.max(1, Math.floor(rect.height));
+        renderer.setSize(width, height);
+        const res = program.uniforms.iResolution.value;
+        res[0] = gl.drawingBufferWidth;
+        res[1] = gl.drawingBufferHeight;
+      };
+      window.addEventListener('resize', setSize, { passive: true });
+      setSize();
+
+      const t0 = performance.now() - Math.random()*10000;
+      const loop = (t) => {
+        program.uniforms.iTime.value = (t - t0) * 0.001;
+        renderer.render({ scene: mesh });
+        requestAnimationFrame(loop);
+      };
+      requestAnimationFrame(loop);
+    </script>
+  </body>
+</html>`;
+  };
+
   const getCodeContent = () => {
-    return codeTab === 'usage' ? getUsageCode() : GRAINIENT_SOURCE;
+    if (codeTab === 'usage') return getUsageCode();
+    if (codeTab === 'component') return GRAINIENT_SOURCE;
+    return getVanillaCode();
   };
 
   const handleCopyCode = async () => {
@@ -404,19 +614,19 @@ export default function MyComponent() {
           className="absolute top-6 right-6 z-20 p-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-white hover:bg-white/20 transition-all shadow-lg"
           aria-label="Open Settings"
         >
-          <Settings size={24} />
+          <HugeiconsIcon icon={Settings01Icon} size={24} />
         </button>
       )}
 
       {/* Code Modal */}
       {showCodeModal && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div className="bg-[#111] border border-white/10 rounded-xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl ring-1 ring-white/10">
+          <div className="bg-[#111] rounded-xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-4 border-b border-white/10 bg-white/5">
+            <div className="flex items-center justify-between p-4 bg-white/5">
               <div className="flex items-center gap-4">
                 <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                  <Code size={20} className="text-purple-400" />
+                  <HugeiconsIcon icon={CodeIcon} size={20} className="text-white" />
                   Get Code
                 </h2>
                 
@@ -430,7 +640,7 @@ export default function MyComponent() {
                         : 'text-white/50 hover:text-white hover:bg-white/10'
                     }`}
                   >
-                    <FileJson size={14} />
+                    <HugeiconsIcon icon={SourceCodeIcon} size={16} />
                     Usage
                   </button>
                   <button
@@ -441,8 +651,19 @@ export default function MyComponent() {
                         : 'text-white/50 hover:text-white hover:bg-white/10'
                     }`}
                   >
-                    <FileCode size={14} />
+                    <HugeiconsIcon icon={DocumentCodeIcon} size={16} />
                     Grainient.tsx
+                  </button>
+                  <button
+                    onClick={() => { setCodeTab('vanilla'); setCopied(false); }}
+                    className={`px-3 py-1 text-xs font-medium rounded-md transition-all flex items-center gap-2 ${
+                      codeTab === 'vanilla' 
+                        ? 'bg-white/20 text-white' 
+                        : 'text-white/50 hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    <HugeiconsIcon icon={CodeSquareIcon} size={16} />
+                    Vanilla
                   </button>
                 </div>
               </div>
@@ -451,7 +672,7 @@ export default function MyComponent() {
                 onClick={() => setShowCodeModal(false)} 
                 className="text-white/50 hover:text-white transition-colors p-1"
               >
-                <X size={20}/>
+                <HugeiconsIcon icon={Cancel01Icon} size={20}/>
               </button>
             </div>
             
@@ -459,19 +680,19 @@ export default function MyComponent() {
             <div className="flex-1 overflow-auto p-0 custom-scrollbar bg-[#0a0a0a]">
               <div className="p-4 space-y-6">
                 {/* Installation Instructions */}
-                <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                  <h3 className="text-sm font-semibold text-blue-200 mb-2 flex items-center gap-2">
-                    <Terminal size={14} />
+                <div className="p-4 rounded-lg bg-white/10 border border-white/10">
+                  <h3 className="text-sm font-semibold text-white/80 mb-2 flex items-center gap-2">
+                    <HugeiconsIcon icon={ComputerTerminal01Icon} size={16} />
                     Installation
                   </h3>
-                  <div className="flex items-center justify-between bg-black/50 rounded border border-blue-500/20 px-3 py-2">
-                    <code className="text-xs sm:text-sm font-mono text-blue-100">npm install ogl</code>
+                  <div className="flex items-center justify-between bg-black/50 rounded border border-white/10 px-3 py-2">
+                    <code className="text-xs sm:text-sm font-mono text-white/80">npm install ogl</code>
                     <button 
                       onClick={handleCopyDependency}
-                      className="text-blue-300 hover:text-white transition-colors p-1"
+                      className="text-white/70 hover:text-white transition-colors p-1"
                       title="Copy command"
                     >
-                      {dependencyCopied ? <Check size={14} /> : <Copy size={14} />}
+                      {dependencyCopied ? <HugeiconsIcon icon={CheckmarkCircle02Icon} size={16} /> : <HugeiconsIcon icon={Copy01Icon} size={16} />}
                     </button>
                   </div>
                 </div>
@@ -487,7 +708,7 @@ export default function MyComponent() {
                   </div>
                   
                   <div className="relative group">
-                    <pre className="text-xs sm:text-sm font-mono text-purple-300 bg-black p-4 rounded-lg border border-white/10 overflow-x-auto selection:bg-purple-500/30">
+                    <pre className="text-xs sm:text-sm font-mono text-white/80 bg-black p-4 rounded-lg border border-white/10 overflow-x-auto selection:bg-white/20">
                       {getCodeContent()}
                     </pre>
                     <button
@@ -495,7 +716,7 @@ export default function MyComponent() {
                       className="absolute top-3 right-3 p-2 bg-white/10 hover:bg-white/20 text-white rounded-md backdrop-blur-sm transition-all border border-white/10 opacity-0 group-hover:opacity-100 focus:opacity-100"
                       title="Copy to clipboard"
                     >
-                      {copied ? <Check size={16} className="text-green-400" /> : <Copy size={16} />}
+                      {copied ? <HugeiconsIcon icon={CheckmarkCircle02Icon} size={16} className="text-white/80" /> : <HugeiconsIcon icon={Copy01Icon} size={16} />}
                     </button>
                   </div>
                 </div>
@@ -503,7 +724,7 @@ export default function MyComponent() {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 border-t border-white/10 bg-white/5 flex justify-end gap-3">
+            <div className="p-4 bg-white/5 flex justify-end gap-3">
               <button 
                 onClick={() => setShowCodeModal(false)}
                 className="px-4 py-2 text-sm font-medium text-white/70 hover:text-white transition-colors"
@@ -512,9 +733,9 @@ export default function MyComponent() {
               </button>
               <button 
                 onClick={handleCopyCode}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-all shadow-lg shadow-purple-900/20"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-white/10 hover:bg-white/20 text-white rounded-lg transition-all border border-white/10"
               >
-                {copied ? <Check size={16} /> : <Copy size={16} />}
+                {copied ? <HugeiconsIcon icon={CheckmarkCircle02Icon} size={16} /> : <HugeiconsIcon icon={Copy01Icon} size={16} />}
                 {copied ? 'Copied!' : 'Copy Code'}
               </button>
             </div>
@@ -530,16 +751,13 @@ export default function MyComponent() {
       >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-white/10 bg-black/20">
-          <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-            Grainient
-          </h1>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowCodeModal(true)}
               className="flex items-center gap-2 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-medium rounded-lg transition-colors border border-white/5"
               title="Get Code"
             >
-              <Copy size={14} />
+              <HugeiconsIcon icon={Copy01Icon} size={16} />
               <span>Copy Code</span>
             </button>
             <button
@@ -547,16 +765,16 @@ export default function MyComponent() {
               className="flex items-center gap-2 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-medium rounded-lg transition-colors border border-white/5"
               title="Reset to defaults"
             >
-              <RefreshCw size={14} />
+              <HugeiconsIcon icon={RefreshIcon} size={16} />
               <span>Reset</span>
             </button>
-            <button
-              onClick={() => setIsPanelOpen(false)}
-              className="p-1.5 text-white/50 hover:text-white transition-colors"
-            >
-              <X size={20} />
-            </button>
           </div>
+          <button
+            onClick={() => setIsPanelOpen(false)}
+            className="p-1.5 text-white/50 hover:text-white transition-colors"
+          >
+            <HugeiconsIcon icon={Cancel01Icon} size={20} />
+          </button>
         </div>
 
         {/* Tab Navigation */}
@@ -564,25 +782,25 @@ export default function MyComponent() {
           <TabButton
             active={activeTab === 'colors'}
             onClick={() => setActiveTab('colors')}
-            icon={<Palette size={16} />}
+            icon={<HugeiconsIcon icon={ColorPickerIcon} size={16} />}
             label="Colors"
           />
           <TabButton
             active={activeTab === 'motion'}
             onClick={() => setActiveTab('motion')}
-            icon={<Zap size={16} />}
+            icon={<HugeiconsIcon icon={ZapIcon} size={16} />}
             label="Motion"
           />
           <TabButton
             active={activeTab === 'effects'}
             onClick={() => setActiveTab('effects')}
-            icon={<Layers size={16} />}
+            icon={<HugeiconsIcon icon={Layers01Icon} size={16} />}
             label="Effects"
           />
           <TabButton
             active={activeTab === 'view'}
             onClick={() => setActiveTab('view')}
-            icon={<Sliders size={16} />}
+            icon={<HugeiconsIcon icon={SlidersHorizontalIcon} size={16} />}
             label="Adjust"
           />
         </div>
@@ -839,12 +1057,7 @@ const RangeInput = ({
         step={step}
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-        style={{
-          backgroundImage: `linear-gradient(to right, #a855f7 0%, #ec4899 100%)`,
-          backgroundSize: `${((value - min) * 100) / (max - min)}% 100%`,
-          backgroundRepeat: 'no-repeat',
-        }}
+        className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/40"
       />
     </div>
     <style>{`
