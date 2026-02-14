@@ -1,0 +1,5 @@
+{
+  "name": "Grainient Live Demo",
+  "description": "A real-time WebGL shader gradient generator with customizable noise, warp, and grain effects.",
+  "requestFramePermissions": []
+}
